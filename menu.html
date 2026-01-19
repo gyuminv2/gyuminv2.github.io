@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대검찰청 식단표</title>
+    <style>
+        :root { --primary: #3e28b6; --bg: #f8f9fa; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 10px; letter-spacing: -1px; }
+        .week-info { text-align: center; color: #666; margin-bottom: 30px; font-size: 1.0rem; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; border-top: 2px solid var(--primary); }
+        th { background: #fcfcfc; color: #333; padding: 15px 5px; font-size: 0.9rem; border-bottom: 1px solid #ddd; }
+        th span { display: block; font-size: 0.8rem; font-weight: normal; margin-top: 4px; color: var(--primary); }
+        td { border-bottom: 1px solid #eee; padding: 20px 10px; text-align: center; vertical-align: top; font-size: 0.9rem; line-height: 1.6; word-break: keep-all; }
+        .type-label { font-weight: bold; color: var(--primary); background: #f0f7ff; width: 80px; vertical-align: middle; border-right: 1px solid #e1ecf7; }
+        
+        /* 주 메뉴 */
+        .main-menu { 
+            display: block; 
+            font-size: 1.0rem; 
+            font-weight: 600; 
+            color: #000; 
+            margin-bottom: 5px; 
+        }
+        .sub-menu { color: #666; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>대검찰청 식단표</h1>
+        <div id="current-week" class="week-info"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>구분</th>
+                    <th id="day0">월</th><th id="day1">화</th><th id="day2">수</th><th id="day3">목</th><th id="day4">금</th>
+                </tr>
+            </thead>
+            <tbody id="menu-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function setDates() {
+            const now = new Date();
+            const day = now.getDay();
+            const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(now.setDate(diffToMonday));
+            
+            const weekInfo = document.getElementById('current-week');
+            const friday = new Date(monday);
+            friday.setDate(monday.getDate() + 4);
+            weekInfo.innerText = `${monday.getFullYear()}년 ${monday.getMonth()+1}월`;
+
+            for (let i = 0; i < 5; i++) {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                document.getElementById(`day${i}`).innerHTML = 
+                    `${['월','화','수','목','금'][i]}<span>${date.getMonth()+1}/${date.getDate()}</span>`;
+            }
+        }
+
+        fetch('menu.json')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('menu-body');
+                // 불러올 데이터 키값 (한식, 일품3층)
+                ['한식', '일품3층'].forEach(type => {
+                    if(!data[type]) return; // 데이터가 없을 경우 에러 방지
+                    
+                    let row = `<tr><td class="type-label">${type}</td>`;
+                    data[type].forEach(item => {
+                        // 1. 콤마로 나누기
+                        const parts = item.split(',');
+                        // 2. 메인 메뉴 추출 및 공백 제거
+                        const mainMenu = parts[0].trim();
+                        // 3. 서브 메뉴들 추출, 공백 제거 후 각각 <br>로 연결
+                        const subMenus = parts.slice(1).map(s => s.trim()).join('<br>');
+                        
+                        row += `<td>
+                                    <span class="main-menu">${mainMenu}</span>
+                                    <span class="sub-menu">${subMenus}</span>
+                                </td>`;
+                    });
+                    row += `</tr>`;
+                    tbody.innerHTML += row;
+                });
+                setDates();
+            });    </script>
+</body>
+</html>
