@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunCat – CPU Monitor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@300;600;800&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --panel: #18181c;
+    --border: #2a2a32;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #e8e8f0;
+    --muted: #666680;
+    --green: #06d6a0;
+    --red: #ef476f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  /* Subtle grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,107,53,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,107,53,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 560px;
+    position: relative;
+    box-shadow: 0 0 60px rgba(255,107,53,0.06), 0 24px 48px rgba(0,0,0,0.5);
+  }
+
+  /* ── Cat Stage ── */
+  .stage {
+    background: #111115;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    height: 130px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  /* scrolling ground */
+  .ground {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 200%;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--border) 0px, var(--border) 20px, transparent 20px, transparent 30px);
+    animation: scroll-ground 1s linear infinite;
+  }
+
+  @keyframes scroll-ground {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-150px); }
+  }
+
+  /* Cat SVG wrapper */
+  .cat-wrap {
+    position: absolute;
+    bottom: 10px;
+    left: 60px;
+  }
+
+  /* Cat drawn in pure CSS/SVG-inline */
+  .cat-svg {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* running bounce */
+  .cat-wrap {
+    animation: cat-bounce 0.3s ease-in-out infinite alternate;
+  }
+
+  @keyframes cat-bounce {
+    from { transform: translateY(0px); }
+    to   { transform: translateY(-4px); }
+  }
+
+  /* Speed lines */
+  .speed-lines {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .speed-lines.visible { opacity: 1; }
+  .speed-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent));
+    border-radius: 2px;
+    animation: speed-anim 0.4s linear infinite;
+  }
+  @keyframes speed-anim {
+    from { transform: translateX(120px); opacity: 1; }
+    to   { transform: translateX(-20px); opacity: 0; }
+  }
+  .speed-line:nth-child(1) { width: 40px; animation-delay: 0.0s; }
+  .speed-line:nth-child(2) { width: 60px; animation-delay: 0.13s; }
+  .speed-line:nth-child(3) { width: 30px; animation-delay: 0.25s; }
+
+  /* cpu readout inside stage */
+  .stage-cpu {
+    position: absolute;
+    top: 12px; right: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .stage-cpu b { color: var(--accent); font-size: 18px; }
+
+  /* ── Gauge ── */
+  .gauge-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .gauge-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .gauge-track {
+    flex: 1;
+    height: 8px;
+    background: #25252d;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .gauge-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--green), var(--accent2), var(--accent), var(--red));
+    background-size: 400% 100%;
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .gauge-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    width: 42px;
+    text-align: right;
+  }
+
+  /* ── Stats Grid ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .stat-box {
+    background: #111115;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-box .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent2);
+    display: block;
+  }
+
+  .stat-box .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+    display: block;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-group {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .ctrl-group label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #25252d;
+    border-radius: 99px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255,107,53,0.5);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #111115;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  button:hover { background: var(--border); border-color: var(--accent); color: var(--accent); }
+  button.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+  /* ── Graph ── */
+  .graph-wrap {
+    margin-top: 20px;
+    background: #111115;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 12px;
+  }
+
+  .graph-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  canvas#graph {
+    width: 100%;
+    height: 60px;
+    display: block;
+  }
+
+  /* Tail wag */
+  @keyframes tail-wag {
+    0%,100% { transform: rotate(-15deg); }
+    50%      { transform: rotate(15deg); }
+  }
+
+  /* status badge */
+  .status {
+    position: absolute;
+    top: 14px; left: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: rgba(6,214,160,0.15);
+    color: var(--green);
+    border: 1px solid rgba(6,214,160,0.3);
+    transition: all 0.4s;
+  }
+  .status.warn { background: rgba(255,209,102,0.15); color: var(--accent2); border-color: rgba(255,209,102,0.3); }
+  .status.crit { background: rgba(239,71,111,0.15); color: var(--red); border-color: rgba(239,71,111,0.3); }
+</style>
+</head>
+<body>
+
+<h1>run<span>cat</span> — cpu monitor</h1>
+
+<div class="card">
+
+  <!-- Stage -->
+  <div class="stage">
+    <div class="speed-lines" id="speedLines">
+      <div class="speed-line"></div>
+      <div class="speed-line"></div>
+      <div class="speed-line"></div>
+    </div>
+
+    <div class="cat-wrap" id="catWrap">
+      <!-- Inline SVG cat (pixel-art style) -->
+      <svg class="cat-svg" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <ellipse cx="26" cy="32" rx="14" ry="10" fill="#f4a460"/>
+        <!-- Head -->
+        <circle cx="26" cy="18" r="11" fill="#f4a460"/>
+        <!-- Ears -->
+        <polygon points="16,10 12,2 20,8" fill="#f4a460"/>
+        <polygon points="36,10 40,2 32,8" fill="#f4a460"/>
+        <polygon points="16,10 13,4 19,8" fill="#ffb6c1"/>
+        <polygon points="36,10 39,4 33,8" fill="#ffb6c1"/>
+        <!-- Face -->
+        <circle cx="21" cy="17" r="2.5" fill="#222" id="eyeL"/>
+        <circle cx="31" cy="17" r="2.5" fill="#222" id="eyeR"/>
+        <circle cx="21.8" cy="16.2" r="0.8" fill="white"/>
+        <circle cx="31.8" cy="16.2" r="0.8" fill="white"/>
+        <!-- Nose -->
+        <ellipse cx="26" cy="21" rx="1.5" ry="1" fill="#ff8fa3"/>
+        <!-- Mouth -->
+        <path d="M24 22.5 Q26 24.5 28 22.5" stroke="#c06" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+        <!-- Whiskers -->
+        <line x1="14" y1="20" x2="22" y2="21" stroke="#888" stroke-width="0.7"/>
+        <line x1="14" y1="22" x2="22" y2="22" stroke="#888" stroke-width="0.7"/>
+        <line x1="30" y1="21" x2="38" y2="20" stroke="#888" stroke-width="0.7"/>
+        <line x1="30" y1="22" x2="38" y2="22" stroke="#888" stroke-width="0.7"/>
+        <!-- Stripes -->
+        <path d="M20 28 Q22 25 24 28" stroke="#d4894a" stroke-width="1.2" fill="none"/>
+        <path d="M28 28 Q30 25 32 28" stroke="#d4894a" stroke-width="1.2" fill="none"/>
+        <!-- Tail -->
+        <g id="tail" style="transform-origin: 40px 32px;">
+          <path d="M40 32 Q52 24 50 14 Q49 8 44 10" stroke="#f4a460" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- Legs (animated via CSS class) -->
+        <g id="legs">
+          <!-- front left -->
+          <rect id="fl" x="17" y="40" width="5" height="10" rx="2.5" fill="#f4a460"/>
+          <!-- front right -->
+          <rect id="fr" x="23" y="40" width="5" height="10" rx="2.5" fill="#f4a460"/>
+          <!-- back left -->
+          <rect id="bl" x="29" y="40" width="5" height="10" rx="2.5" fill="#f4a460"/>
+          <!-- back right -->
+          <rect id="br" x="35" y="40" width="5" height="10" rx="2.5" fill="#f4a460"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="ground" id="ground"></div>
+
+    <div class="stage-cpu">
+      CPU <b id="stageCpu">0</b>%
+    </div>
+
+    <div class="status" id="status">IDLE</div>
+  </div>
+
+  <!-- Gauge -->
+  <div class="gauge-row">
+    <span class="gauge-label">CPU</span>
+    <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
+    <span class="gauge-val" id="gaugeVal">0%</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-box">
+      <span class="val" id="statSpeed">0</span>
+      <span class="lbl">FPS / Speed</span>
+    </div>
+    <div class="stat-box">
+      <span class="val" id="statPeak">0</span>
+      <span class="lbl">Peak CPU</span>
+    </div>
+    <div class="stat-box">
+      <span class="val" id="statAvg">0</span>
+      <span class="lbl">Avg CPU</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Manual CPU %</label>
+      <input type="range" id="cpuSlider" min="0" max="100" value="20">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button id="btnAuto" class="active">Auto Simulate</button>
+    <button id="btnSpike">CPU Spike!</button>
+    <button id="btnIdle">Force Idle</button>
+  </div>
+
+  <!-- Graph -->
+  <div class="graph-wrap">
+    <div class="graph-label">CPU History (60s)</div>
+    <canvas id="graph" width="800" height="120"></canvas>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──
+  let cpu = 20;
+  let autoMode = true;
+  let peakCpu = 0;
+  let history = new Array(60).fill(0);
+  let animFrame = 0;
+  let legPhase = 0;
+  let spikeTimer = 0;
+
+  const slider = document.getElementById('cpuSlider');
+  const gaugeFill = document.getElementById('gaugeFill');
+  const gaugeVal = document.getElementById('gaugeVal');
+  const stageCpu = document.getElementById('stageCpu');
+  const statSpeed = document.getElementById('statSpeed');
+  const statPeak = document.getElementById('statPeak');
+  const statAvg = document.getElementById('statAvg');
+  const speedLines = document.getElementById('speedLines');
+  const catWrap = document.getElementById('catWrap');
+  const ground = document.getElementById('ground');
+  const statusBadge = document.getElementById('status');
+  const canvas = document.getElementById('graph');
+  const ctx = canvas.getContext('2d');
+  const btnAuto = document.getElementById('btnAuto');
+  const btnSpike = document.getElementById('btnSpike');
+  const btnIdle = document.getElementById('btnIdle');
+
+  // Resize canvas properly
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    canvas.height = 120;
+  }
+  resizeCanvas();
+
+  // ── Simulation ──
+  let simCpu = 8;
+  let simTarget = 8;
+  const SIM_BASE = 8;   // 평소 유휴 상태 기준 (%)
+  const SIM_NOISE = 3;  // 기준선 주변 ±노이즈 (%)
+
+  function simulateCpu() {
+    if (spikeTimer > 0) {
+      spikeTimer--;
+      // Spike: 60~85% 구간에서 유지
+      simTarget = 60 + Math.random() * 25;
+    } else {
+      // 평소: BASE ± NOISE 범위 내에서 자연스럽게 흔들림
+      // 현재 target이 범위를 벗어났으면 BASE 쪽으로 당겨옴
+      const noise = (Math.random() - 0.5) * SIM_NOISE * 2;
+      const pullBack = (SIM_BASE - simTarget) * 0.3; // 기준선으로 복원력
+      simTarget = Math.max(2, Math.min(25, simTarget + noise + pullBack));
+    }
+    // 부드럽게 추종
+    simCpu += (simTarget - simCpu) * 0.15;
+    return Math.round(Math.max(1, simCpu));
+  }
+
+  // ── Animation speed mapping ──
+  function cpuToSpeed(c) {
+    // 0% → very slow, 100% → blazing fast
+    return 0.2 + (c / 100) * 3.8; // multiplier
+  }
+
+  // ── Leg animation via SVG transform ──
+  const legEls = {
+    fl: document.getElementById('fl'),
+    fr: document.getElementById('fr'),
+    bl: document.getElementById('bl'),
+    br: document.getElementById('br'),
+    tail: document.getElementById('tail'),
+  };
+
+  function animateLegs(speed) {
+    legPhase += speed * 0.18;
+    const s = Math.sin(legPhase);
+    const c = Math.cos(legPhase);
+
+    // Stride: opposite pairs move together
+    const stride = speed * 5;
+    legEls.fl.setAttribute('transform', `translate(0, ${-Math.max(0, s) * stride})`);
+    legEls.br.setAttribute('transform', `translate(0, ${-Math.max(0, s) * stride})`);
+    legEls.fr.setAttribute('transform', `translate(0, ${-Math.max(0, c) * stride})`);
+    legEls.bl.setAttribute('transform', `translate(0, ${-Math.max(0, c) * stride})`);
+
+    // Tail wag
+    const tailAngle = Math.sin(legPhase * 0.7) * (10 + speed * 5);
+    legEls.tail.setAttribute('transform', `rotate(${tailAngle}, 40, 32)`);
+  }
+
+  // ── Graph draw ──
+  function drawGraph() {
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(42,42,50,0.8)';
+    ctx.lineWidth = 1;
+    [25, 50, 75].forEach(pct => {
+      const y = h - (pct / 100) * h;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    });
+
+    if (history.length < 2) return;
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(255,107,53,0.5)');
+    grad.addColorStop(1, 'rgba(255,107,53,0.02)');
+
+    ctx.beginPath();
+    const step = w / (history.length - 1);
+    history.forEach((v, i) => {
+      const x = i * step;
+      const y = h - (v / 100) * h;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    history.forEach((v, i) => {
+      const x = i * step;
+      const y = h - (v / 100) * h;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#ff6b35';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  // ── Status badge ──
+  function updateStatus(c) {
+    if (c < 30) { statusBadge.textContent = 'IDLE'; statusBadge.className = 'status'; }
+    else if (c < 60) { statusBadge.textContent = 'ACTIVE'; statusBadge.className = 'status'; }
+    else if (c < 80) { statusBadge.textContent = 'BUSY'; statusBadge.className = 'status warn'; }
+    else { statusBadge.textContent = 'OVERLOAD'; statusBadge.className = 'status crit'; }
+  }
+
+  // ── Main loop ──
+  let lastHistoryUpdate = 0;
+  function loop(ts) {
+    // Determine CPU
+    if (autoMode) {
+      cpu = simulateCpu();
+      slider.value = cpu;
+    } else {
+      cpu = parseInt(slider.value);
+    }
+
+    const speed = cpuToSpeed(cpu);
+
+    // Animate legs
+    animateLegs(speed);
+
+    // Bounce speed
+    const bounceDur = Math.max(0.12, 0.5 - speed * 0.1);
+    catWrap.style.animationDuration = bounceDur + 's';
+
+    // Ground scroll speed
+    const scrollDur = Math.max(0.1, 1 - speed * 0.22);
+    ground.style.animationDuration = scrollDur + 's';
+
+    // Speed lines
+    if (cpu > 60) {
+      speedLines.classList.add('visible');
+      const lineDur = Math.max(0.12, 0.5 - (cpu - 60) / 100);
+      speedLines.querySelectorAll('.speed-line').forEach(l => {
+        l.style.animationDuration = lineDur + 's';
+      });
+    } else {
+      speedLines.classList.remove('visible');
+    }
+
+    // UI updates
+    gaugeFill.style.width = cpu + '%';
+    gaugeVal.textContent = cpu + '%';
+    stageCpu.textContent = cpu;
+    statSpeed.textContent = speed.toFixed(1) + 'x';
+
+    peakCpu = Math.max(peakCpu, cpu);
+    statPeak.textContent = peakCpu + '%';
+
+    updateStatus(cpu);
+
+    // History every ~1s
+    if (ts - lastHistoryUpdate > 1000) {
+      history.push(cpu);
+      if (history.length > 60) history.shift();
+      const avg = Math.round(history.reduce((a, b) => a + b, 0) / history.length);
+      statAvg.textContent = avg + '%';
+      drawGraph();
+      lastHistoryUpdate = ts;
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+
+  // ── Controls ──
+  slider.addEventListener('input', () => {
+    if (autoMode) {
+      autoMode = false;
+      btnAuto.classList.remove('active');
+    }
+  });
+
+  btnAuto.addEventListener('click', () => {
+    autoMode = !autoMode;
+    btnAuto.classList.toggle('active', autoMode);
+  });
+
+  btnSpike.addEventListener('click', () => {
+    spikeTimer = 15;
+    autoMode = true;
+    btnAuto.classList.add('active');
+  });
+
+  btnIdle.addEventListener('click', () => {
+    autoMode = false;
+    btnAuto.classList.remove('active');
+    slider.value = 5;
+    simTarget = SIM_BASE;
+    simCpu = SIM_BASE;
+  });
+
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    drawGraph();
+  });
+</script>
+</body>
+</html>
