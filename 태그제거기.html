@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML 태그 제거기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --surface2: #222228;
+    --border: #2e2e38;
+    --accent: #7c6af7;
+    --accent2: #a855f7;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --success: #34d399;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #a78bfa, #7c6af7, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    font-size: 0.875rem;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 680px) {
+    .container { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .panel-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .char-count {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  textarea {
+    flex: 1;
+    min-height: 320px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 0.825rem;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.7;
+    padding: 18px;
+    resize: none;
+    caret-color: var(--accent);
+  }
+
+  textarea::placeholder { color: #44445a; }
+
+  textarea:focus { background: rgba(124,106,247,0.03); }
+
+  .output-text {
+    flex: 1;
+    min-height: 320px;
+    padding: 18px;
+    font-size: 0.825rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    line-height: 1.8;
+    color: var(--text);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .output-text.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    margin: 4px 0 8px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 28px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: all 0.18s ease;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #7c6af7, #a855f7);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(124,106,247,0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(124,106,247,0.5);
+  }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .btn-copy {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.15s;
+  }
+
+  .btn-copy:hover { color: var(--success); border-color: var(--success); }
+  .btn-copy.copied { color: var(--success); border-color: var(--success); }
+
+  .options {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .option-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    user-select: none;
+    transition: color 0.15s;
+  }
+
+  .option-label:hover { color: var(--text); }
+
+  .option-label input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success);
+    color: #0f0f11;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 50px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HTML 태그 제거기</h1>
+  <p>HTML 태그와 JSON 데이터를 제거하고 순수 텍스트만 추출합니다</p>
+</div>
+
+<div class="options">
+  <label class="option-label">
+    <input type="checkbox" id="opt-json" checked>
+    JSON 데이터 블록 제거
+  </label>
+  <label class="option-label">
+    <input type="checkbox" id="opt-blank" checked>
+    연속 공백 줄 정리
+  </label>
+  <label class="option-label">
+    <input type="checkbox" id="opt-trim" checked>
+    앞뒤 공백 제거
+  </label>
+</div>
+
+<div class="container">
+  <!-- Input -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">입력</span>
+      <span class="char-count" id="in-count">0자</span>
+    </div>
+    <textarea id="input" placeholder="HTML 코드를 여기에 붙여넣으세요..."></textarea>
+  </div>
+
+  <!-- Output -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">결과</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="char-count" id="out-count">0자</span>
+        <button class="btn-copy" id="copy-btn" onclick="copyOutput()">복사</button>
+      </div>
+    </div>
+    <div class="output-text empty" id="output">결과가 여기에 표시됩니다</div>
+  </div>
+</div>
+
+<div class="controls" style="margin-top:20px;">
+  <button class="btn btn-primary" onclick="process()">▶ 태그 제거</button>
+  <button class="btn btn-secondary" onclick="clearAll()">초기화</button>
+</div>
+
+<div class="toast" id="toast">클립보드에 복사되었습니다 ✓</div>
+
+<script>
+  const inputEl = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const inCount = document.getElementById('in-count');
+  const outCount = document.getElementById('out-count');
+
+  inputEl.addEventListener('input', () => {
+    inCount.textContent = inputEl.value.length + '자';
+  });
+
+  function process() {
+    let text = inputEl.value;
+    if (!text.trim()) return;
+
+    // 1. JSON 블록 제거 (<!--[data-hwpjson]{...}-->) 
+    if (document.getElementById('opt-json').checked) {
+      text = text.replace(/<!--\[data-hwpjson\][\s\S]*?-->/gi, '');
+      // JSON-like 블록 제거 (중괄호로 시작하는 큰 블록)
+      text = text.replace(/\{[\s\S]{500,}\}/g, '');
+    }
+
+    // 2. HTML 주석 제거
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+
+    // 3. style 태그와 내용 제거
+    text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+
+    // 4. script 태그와 내용 제거
+    text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+
+    // 5. 블록 요소 → 줄바꿈 변환 (태그 제거 전에 먼저 처리)
+    // 단락/제목/리스트 항목 → 두 줄바꿈
+    text = text.replace(/<\/p>/gi, '\n\n');
+    text = text.replace(/<\/div>/gi, '\n');
+    text = text.replace(/<\/h[1-6]>/gi, '\n\n');
+    text = text.replace(/<\/li>/gi, '\n');
+    text = text.replace(/<\/tr>/gi, '\n');
+    text = text.replace(/<\/td>/gi, '\t');
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+
+    // 6. 모든 HTML 태그 제거
+    text = text.replace(/<[^>]+>/g, '');
+
+    // 6. HTML 엔티티 디코딩
+    text = text.replace(/&nbsp;/g, ' ')
+               .replace(/&amp;/g, '&')
+               .replace(/&lt;/g, '<')
+               .replace(/&gt;/g, '>')
+               .replace(/&quot;/g, '"')
+               .replace(/&#39;/g, "'")
+               .replace(/&mdash;/g, '—')
+               .replace(/&ndash;/g, '–');
+
+    // 7. 연속 공백 줄 정리
+    if (document.getElementById('opt-blank').checked) {
+      text = text.replace(/\n{3,}/g, '\n\n');
+    }
+
+    // 8. 앞뒤 공백 제거
+    if (document.getElementById('opt-trim').checked) {
+      text = text.trim();
+    }
+
+    if (text) {
+      outputEl.textContent = text;
+      outputEl.classList.remove('empty');
+      outCount.textContent = text.length + '자';
+    } else {
+      outputEl.textContent = '추출된 텍스트가 없습니다';
+      outputEl.classList.add('empty');
+      outCount.textContent = '0자';
+    }
+  }
+
+  function clearAll() {
+    inputEl.value = '';
+    outputEl.textContent = '결과가 여기에 표시됩니다';
+    outputEl.classList.add('empty');
+    inCount.textContent = '0자';
+    outCount.textContent = '0자';
+  }
+
+  function copyOutput() {
+    const text = outputEl.textContent;
+    if (!text || outputEl.classList.contains('empty')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '복사됨 ✓';
+      btn.classList.add('copied');
+      showToast();
+      setTimeout(() => {
+        btn.textContent = '복사';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // 붙여넣기 시 자동 처리
+  inputEl.addEventListener('paste', () => {
+    setTimeout(process, 50);
+  });
+</script>
+</body>
+</html>
