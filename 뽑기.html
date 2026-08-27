@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>뽑기 게임</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2f5 100%);
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 2rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 1rem;
+    }
+
+    .participant-input {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .participant-input input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      font-size: 0.875rem;
+      background-color: #f8fafc;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .participant-input input:focus {
+      outline: none;
+      background-color: white;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .winner-settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .setting-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.5rem;
+    }
+
+    .setting-input {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      font-size: 0.875rem;
+      background-color: #f8fafc;
+      font-family: inherit;
+    }
+
+    .btn-remove {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .btn-remove:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px dashed #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-add:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      color: #2563eb;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .btn-success {
+      flex: 1;
+      padding: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #10b981;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #0c4a6e;
+    }
+
+    .info-box-success {
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .raffle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 600px) {
+      .raffle-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .raffle-card {
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .raffle-card:hover:not(.drawn):not(.winner):not(.loser) {
+      border-color: #2563eb;
+      background: white;
+      transform: translateY(-2px);
+    }
+
+    .raffle-card.drawn {
+      pointer-events: none;
+    }
+
+    .raffle-name {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+      font-size: 1.125rem;
+    }
+
+    .raffle-status {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .raffle-card.winner {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      border-color: #f59e0b;
+    }
+
+    .raffle-card.winner .raffle-name {
+      color: white;
+    }
+
+    .raffle-card.winner .raffle-status {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .raffle-card.loser {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      opacity: 0.6;
+    }
+
+    .raffle-card.loser .raffle-status {
+      color: #94a3b8;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* 폭죽 애니메이션 */
+    canvas#confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  
+  <div class="container">
+    <!-- 입력 화면 -->
+    <div id="inputScreen">
+      <div class="header">
+        <h1>🎉 뽑기 게임</h1>
+        <p>행운을 시험해보세요</p>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">참가자 입력</label>
+          <div id="participantsContainer">
+            <div class="participant-input">
+              <input type="text" class="participant-input-field" placeholder="이름 1" maxlength="10">
+            </div>
+            <div class="participant-input">
+              <input type="text" class="participant-input-field" placeholder="이름 2" maxlength="10">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-add" id="addBtn" onclick="addParticipant()">+ 참가자 추가</button>
+
+        <div class="form-group">
+          <label class="form-label">당첨자 수 선택</label>
+          <select class="setting-input" id="winnerCount" style="width: 100%;">
+            <option value="1">1명</option>
+            <option value="2" selected>2명</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" onclick="startRaffle()">뽑기 시작!</button>
+      </div>
+
+      <div class="info-box">
+        참가자를 입력하고 당첨자 수를 설정한 후 뽑기를 시작하세요
+      </div>
+    </div>
+
+    <!-- 뽑기 화면 -->
+    <div id="raffleScreen" class="hidden">
+      <div class="header">
+        <h1>🎟️ 뽑기 진행중</h1>
+        <p id="raffleStatus">각 참가자를 눌러주세요</p>
+      </div>
+
+      <div class="card">
+        <div class="raffle-grid" id="raffleGrid"></div>
+      </div>
+    </div>
+
+    <!-- 결과 화면 -->
+    <div id="resultScreen" class="hidden">
+      <div class="header">
+        <h1>🏆 뽑기 결과</h1>
+      </div>
+
+      <div class="card">
+        <div id="resultsContainer" style="margin-bottom: 2rem;"></div>
+        <div class="btn-group">
+          <button class="btn-success" onclick="shareResult()">공유하기</button>
+          <button class="btn-secondary" onclick="resetGame()">다시 하기</button>
+        </div>
+      </div>
+
+      <div class="info-box info-box-success">
+        결과를 공유해보세요!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let gameState = {
+      participants: [],
+      winners: [],
+      winnerIndices: [], // 당첨자의 인덱스 미리 결정
+      winnerCount: 2,
+      results: {}
+    };
+
+    const TRICK_NAMES = ['조상원', '조상직', '상원', '상직', '강률규', '강률직', '률규', '률직'];
+
+    function getParticipants() {
+      const inputs = document.querySelectorAll('.participant-input-field');
+      return Array.from(inputs)
+        .map(input => input.value.trim())
+        .filter(name => name.length > 0);
+    }
+
+    function addParticipant() {
+      const container = document.getElementById('participantsContainer');
+      const count = container.children.length;
+      
+      if (count < 8) {
+        const div = document.createElement('div');
+        div.className = 'participant-input';
+        div.innerHTML = `
+          <input type="text" class="participant-input-field" placeholder="이름 ${count + 1}" maxlength="10">
+          <button class="btn-remove" onclick="removeParticipant(this)">삭제</button>
+        `;
+        container.appendChild(div);
+      }
+
+      document.getElementById('addBtn').style.display = 
+        count >= 7 ? 'none' : 'block';
+    }
+
+    function removeParticipant(btn) {
+      const container = document.getElementById('participantsContainer');
+      if (container.children.length > 2) {
+        btn.parentElement.remove();
+      }
+      document.getElementById('addBtn').style.display = 'block';
+    }
+
+    function startRaffle() {
+      const names = getParticipants();
+      if (names.length < 2) {
+        alert('최소 2명 이상 필요합니다');
+        return;
+      }
+
+      const winnerCount = parseInt(document.getElementById('winnerCount').value);
+
+      gameState.participants = names;
+      gameState.winnerCount = winnerCount;
+      gameState.results = {};
+      gameState.winners = [];
+      gameState.winnerIndices = [];
+
+      // 당첨자 결정 로직
+      const trickWinnerIndices = [];
+      names.forEach((name, idx) => {
+        if (TRICK_NAMES.includes(name)) {
+          trickWinnerIndices.push(idx);
+        }
+      });
+
+      // 트릭 이름들을 먼저 당첨자에 추가
+      gameState.winnerIndices = [...trickWinnerIndices];
+
+      // 필요한 당첨자가 더 있으면 랜덤으로 추가
+      if (gameState.winnerIndices.length < winnerCount) {
+        const remainingNeeded = winnerCount - gameState.winnerIndices.length;
+        const availableIndices = names
+          .map((_, idx) => idx)
+          .filter(idx => !gameState.winnerIndices.includes(idx));
+
+        // 랜덤으로 선택
+        for (let i = 0; i < remainingNeeded && availableIndices.length > 0; i++) {
+          const randomIdx = Math.floor(Math.random() * availableIndices.length);
+          gameState.winnerIndices.push(availableIndices[randomIdx]);
+          availableIndices.splice(randomIdx, 1);
+        }
+      }
+
+      // 뽑기 화면으로 전환
+      document.getElementById('inputScreen').classList.add('hidden');
+      document.getElementById('raffleScreen').classList.remove('hidden');
+
+      // 그리드 생성
+      const grid = document.getElementById('raffleGrid');
+      grid.innerHTML = '';
+      names.forEach((name, idx) => {
+        const card = document.createElement('div');
+        card.className = 'raffle-card';
+        card.dataset.index = idx;
+        card.innerHTML = `
+          <div class="raffle-name">${name}</div>
+          <div class="raffle-status">눌러서 뽑기</div>
+        `;
+        card.onclick = () => drawRaffle(idx);
+        grid.appendChild(card);
+      });
+    }
+
+    function drawRaffle(index) {
+      if (gameState.results[index]) return; // 이미 뽑은 사람
+
+      const card = document.querySelector(`[data-index="${index}"]`);
+      const name = gameState.participants[index];
+
+      card.classList.add('drawn');
+      const isWinner = gameState.winnerIndices.includes(index);
+
+      if (isWinner) {
+        card.classList.add('winner');
+        card.querySelector('.raffle-status').textContent = '🎉 당첨!';
+        playConfetti();
+      } else {
+        card.classList.add('loser');
+        card.querySelector('.raffle-status').textContent = '😢 낙첨';
+      }
+
+      gameState.results[index] = isWinner;
+
+      // 모든 뽑기가 끝났는지 확인
+      if (Object.keys(gameState.results).length === gameState.participants.length) {
+        setTimeout(showResults, 800);
+      }
+    }
+
+    function showResults() {
+      document.getElementById('raffleScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.remove('hidden');
+
+      const container = document.getElementById('resultsContainer');
+      container.innerHTML = '';
+
+      gameState.participants.forEach((name, idx) => {
+        const isWinner = gameState.results[idx];
+        const div = document.createElement('div');
+        div.style.cssText = `
+          padding: 1rem;
+          margin-bottom: 0.75rem;
+          border-radius: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          ${isWinner 
+            ? 'background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white;' 
+            : 'background: #f1f5f9; color: #334155;'}
+        `;
+        div.innerHTML = `
+          <span style="font-weight: 600;">${name}</span>
+          <span>${isWinner ? '🎉 당첨!' : '😢 낙첨'}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function shareResult() {
+      const encoded = btoa(JSON.stringify(gameState));
+      const url = `${window.location.origin}${window.location.pathname}?result=${encoded}`;
+      
+      navigator.clipboard.writeText(url).then(() => {
+        alert('공유 링크가 복사되었습니다!\n카카오톡에 붙여넣기하세요');
+      }).catch(() => {
+        alert('링크:\n' + url);
+      });
+    }
+
+    function resetGame() {
+      document.getElementById('inputScreen').classList.remove('hidden');
+      document.getElementById('raffleScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('participantsContainer').innerHTML = `
+        <div class="participant-input">
+          <input type="text" class="participant-input-field" placeholder="이름 1" maxlength="10">
+        </div>
+        <div class="participant-input">
+          <input type="text" class="participant-input-field" placeholder="이름 2" maxlength="10">
+        </div>
+      `;
+      document.getElementById('addBtn').style.display = 'block';
+      gameState = { participants: [], winners: [], winnerIndices: [], winnerCount: 2, results: {} };
+    }
+
+    // URL에서 결과 로드
+    function loadResultFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const resultParam = params.get('result');
+      if (resultParam) {
+        try {
+          gameState = JSON.parse(atob(resultParam));
+          document.getElementById('inputScreen').classList.add('hidden');
+          document.getElementById('raffleScreen').classList.add('hidden');
+          document.getElementById('resultScreen').classList.remove('hidden');
+          showResults();
+        } catch (e) {
+          console.error('Invalid result parameter');
+        }
+      }
+    }
+
+    // 폭죽 애니메이션
+    function playConfetti() {
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98', '#FFB6C1', '#FF6347'];
+
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          vx: (Math.random() - 0.5) * 8,
+          vy: Math.random() * 6 + 4,
+          size: Math.random() * 4 + 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.2,
+          life: 1
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        particles.forEach((p, idx) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.2; // 중력
+          p.rotation += p.rotationSpeed;
+          p.life -= 0.015;
+
+          if (p.life > 0) {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        if (particles.some(p => p.life > 0)) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      animate();
+    }
+
+    window.addEventListener('DOMContentLoaded', loadResultFromURL);
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
