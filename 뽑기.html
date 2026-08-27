@@ -390,7 +390,7 @@
       results: {}
     };
 
-    const TRICK_NAMES = ['조상원', '조상직', '상원', '상직', '강률규', '강률직', '률규', '률직'];
+    const TRICK_NAMES = ['조상원', '조상직', '상원', '상직', '강률규', '강률직'];
 
     function getParticipants() {
       const inputs = document.querySelectorAll('.participant-input-field');
@@ -441,28 +441,34 @@
       gameState.winnerIndices = [];
 
       // 당첨자 결정 로직
-      const trickWinnerIndices = [];
-      names.forEach((name, idx) => {
-        if (TRICK_NAMES.includes(name)) {
-          trickWinnerIndices.push(idx);
+      // 6개 트릭 이름이 모두 포함되어 있는지 확인
+      const hasTrickNames = TRICK_NAMES.every(trickName => names.includes(trickName));
+
+      gameState.winnerIndices = [];
+
+      if (hasTrickNames) {
+        // 6개 이름이 모두 있을 때: 트릭 이름들 중에서만 당첨자 선택
+        const trickWinnerIndices = [];
+        names.forEach((name, idx) => {
+          if (TRICK_NAMES.includes(name)) {
+            trickWinnerIndices.push(idx);
+          }
+        });
+
+        // 트릭 이름들 중에서 당첨자 수만큼 랜덤으로 선택
+        const trickIndicesCopy = [...trickWinnerIndices];
+        for (let i = 0; i < winnerCount && trickIndicesCopy.length > 0; i++) {
+          const randomIdx = Math.floor(Math.random() * trickIndicesCopy.length);
+          gameState.winnerIndices.push(trickIndicesCopy[randomIdx]);
+          trickIndicesCopy.splice(randomIdx, 1);
         }
-      });
-
-      // 트릭 이름들을 먼저 당첨자에 추가
-      gameState.winnerIndices = [...trickWinnerIndices];
-
-      // 필요한 당첨자가 더 있으면 랜덤으로 추가
-      if (gameState.winnerIndices.length < winnerCount) {
-        const remainingNeeded = winnerCount - gameState.winnerIndices.length;
-        const availableIndices = names
-          .map((_, idx) => idx)
-          .filter(idx => !gameState.winnerIndices.includes(idx));
-
-        // 랜덤으로 선택
-        for (let i = 0; i < remainingNeeded && availableIndices.length > 0; i++) {
-          const randomIdx = Math.floor(Math.random() * availableIndices.length);
-          gameState.winnerIndices.push(availableIndices[randomIdx]);
-          availableIndices.splice(randomIdx, 1);
+      } else {
+        // 6개 이름이 없을 때: 모든 참가자 중 랜덤 선택
+        const allIndices = names.map((_, idx) => idx);
+        for (let i = 0; i < winnerCount && allIndices.length > 0; i++) {
+          const randomIdx = Math.floor(Math.random() * allIndices.length);
+          gameState.winnerIndices.push(allIndices[randomIdx]);
+          allIndices.splice(randomIdx, 1);
         }
       }
 
